@@ -52,6 +52,7 @@ let
     concatStringsSep
     substring
     stringLength
+    hasSuffix
     ;
 
 in
@@ -181,7 +182,8 @@ rec {
           ${context} is of type ${typeOf value}, but it should be a file set or a path instead.''
     else if ! pathExists value then
       throw ''
-        ${context} (${toString value}) is a path that does not exist.''
+        ${context} (${toString value}) is a path that does not exist.
+            To create a file set from a path that may not exist, use `lib.fileset.maybeMissing`.''
     else
       _singleton value;
 
@@ -381,7 +383,7 @@ rec {
 
   # Turn a fileset into a source filter function suitable for `builtins.path`
   # Only directories recursively containing at least one files are recursed into
-  # Type: Path -> fileset -> (String -> String -> Bool)
+  # Type: fileset -> (String -> String -> Bool)
   _toSourceFilter = fileset:
     let
       # Simplify the tree, necessary to make sure all empty directories are null
@@ -753,9 +755,9 @@ rec {
 
       resultingTree =
         _differenceTree
-        positive._internalBase
-        positive._internalTree
-        negativeTreeWithPositiveBase;
+          positive._internalBase
+          positive._internalTree
+          negativeTreeWithPositiveBase;
     in
     # If the first file set is empty, we can never have any files in the result
     if positive._internalIsEmptyWithoutBase then
@@ -786,9 +788,9 @@ rec {
         _differenceTree (path + "/${name}") lhsValue (rhs.${name} or null)
       ) (_directoryEntries path lhs);
 
-  # Filters all files in a file set based on a predicate
-  # Type: ({ name, type, ... } -> Bool) -> FileSet -> FileSet
-  _fileFilter = predicate: fileset:
+  # Filters all files in a path based on a predicate
+  # Type: ({ name, type, ... } -> Bool) -> Path -> FileSet
+  _fileFilter = predicate: root:
     let
       # Check the predicate for a single file
       # Type: String -> String -> filesetTree
@@ -796,9 +798,11 @@ rec {
         if
           predicate {
             inherit name type;
+            hasExt = ext: hasSuffix ".${ext}" name;
+
             # To ensure forwards compatibility with more arguments being added in the future,
             # adding an attribute which can't be deconstructed :)
-            "lib.fileset.fileFilter: The predicate function passed as the first argument must be able to handle extra attributes for future compatibility. If you're using `{ name, file }:`, use `{ name, file, ... }:` instead." = null;
+            "lib.fileset.fileFilter: The predicate function passed as the first argument must be able to handle extra attributes for future compatibility. If you're using `{ name, file, hasExt }:`, use `{ name, file, hasExt, ... }:` instead." = null;
           }
         then
           type
@@ -807,19 +811,45 @@ rec {
 
       # Check the predicate for all files in a directory
       # Type: Path -> filesetTree
-      fromDir = path: tree:
-        mapAttrs (name: subtree:
-          if isAttrs subtree || subtree == "directory" then
-            fromDir (path + "/${name}") subtree
-          else if subtree == null then
-            null
+      fromDir = path:
+        mapAttrs (name: type:
+          if type == "directory" then
+            fromDir (path + "/${name}")
           else
-            fromFile name subtree
-        ) (_directoryEntries path tree);
+            fromFile name type
+        ) (readDir path);
+
+      rootType = pathType root;
     in
-    if fileset._internalIsEmptyWithoutBase then
-      _emptyWithoutBase
+    if rootType == "directory" then
+      _create root (fromDir root)
     else
-      _create fileset._internalBase
-        (fromDir fileset._internalBase fileset._internalTree);
+      # Single files are turned into a directory containing that file or nothing.
+      _create (dirOf root) {
+        ${baseNameOf root} =
+          fromFile (baseNameOf root) rootType;
+      };
+
+  # Support for `builtins.fetchGit` with `submodules = true` was introduced in 2.4
+  # https://github.com/NixOS/nix/commit/55cefd41d63368d4286568e2956afd535cb44018
+  _fetchGitSubmodulesMinver = "2.4";
+
+  # Mirrors the contents of a Nix store path relative to a local path as a file set.
+  # Some notes:
+  # - The store path is read at evaluation time.
+  # - The store path must not include files that don't exist in the respective local path.
+  #
+  # Type: Path -> String -> FileSet
+  _mirrorStorePath = localPath: storePath:
+    let
+      recurse = focusedStorePath:
+        mapAttrs (name: type:
+          if type == "directory" then
+            recurse (focusedStorePath + "/${name}")
+          else
+            type
+        ) (builtins.readDir focusedStorePath);
+    in
+    _create localPath
+      (recurse storePath);
 }

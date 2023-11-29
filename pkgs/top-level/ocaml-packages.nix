@@ -1046,6 +1046,8 @@ let
 
     merlin-lib = callPackage ../development/tools/ocaml/merlin/lib.nix { };
 
+    metadata = callPackage ../development/ocaml-modules/metadata { };
+
     metrics = callPackage ../development/ocaml-modules/metrics { };
 
     metrics-influx = callPackage ../development/ocaml-modules/metrics/influx.nix { };
@@ -1604,6 +1606,8 @@ let
 
     ringo = callPackage ../development/ocaml-modules/ringo { };
 
+    riot = callPackage ../development/ocaml-modules/riot { };
+
     rock = callPackage ../development/ocaml-modules/rock { };
 
     rope = callPackage ../development/ocaml-modules/rope { };
@@ -1891,6 +1895,8 @@ let
     zelus = callPackage ../development/ocaml-modules/zelus { };
 
     zelus-gtk = callPackage ../development/ocaml-modules/zelus-gtk { };
+
+    zipc = callPackage ../development/ocaml-modules/zipc { };
 
     zmq = callPackage ../development/ocaml-modules/zmq { };
 

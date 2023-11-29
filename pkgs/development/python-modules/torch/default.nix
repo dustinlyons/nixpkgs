@@ -1,5 +1,12 @@
 { stdenv, lib, fetchFromGitHub, fetchpatch, buildPythonPackage, python,
-  config, cudaSupport ? config.cudaSupport, cudaPackages, magma,
+  config, cudaSupport ? config.cudaSupport, cudaPackages,
+  effectiveMagma ?
+  if cudaSupport then magma-cuda-static
+  else if rocmSupport then magma-hip
+  else magma,
+  magma,
+  magma-hip,
+  magma-cuda-static,
   useSystemNccl ? true,
   MPISupport ? false, mpi,
   buildDocs ? false,
@@ -16,9 +23,10 @@
   filelock,
   jinja2,
   networkx,
-  openai-triton,
   sympy,
   numpy, pyyaml, cffi, click, typing-extensions,
+  # ROCm build and `torch.compile` requires `openai-triton`
+  tritonSupport ? (!stdenv.isDarwin), openai-triton,
 
   # Unit tests
   hypothesis, psutil,
@@ -33,8 +41,6 @@
 
   # ninja (https://ninja-build.org) must be available to run C++ extensions tests,
   ninja,
-
-  linuxHeaders_5_19,
 
   # dependencies for torch.utils.tensorboard
   pillow, six, future, tensorboard, protobuf,
@@ -112,11 +118,11 @@ let
   };
 
   brokenConditions = attrsets.filterAttrs (_: cond: cond) {
-    "CUDA and ROCm are not mutually exclusive" = cudaSupport && rocmSupport;
+    "CUDA and ROCm are mutually exclusive" = cudaSupport && rocmSupport;
     "CUDA is not targeting Linux" = cudaSupport && !stdenv.isLinux;
     "Unsupported CUDA version" = cudaSupport && !(builtins.elem cudaPackages.cudaMajorVersion [ "11" "12" ]);
     "MPI cudatoolkit does not match cudaPackages.cudatoolkit" = MPISupport && cudaSupport && (mpi.cudatoolkit != cudaPackages.cudatoolkit);
-    "Magma cudaPackages does not match cudaPackages" = cudaSupport && (magma.cudaPackages != cudaPackages);
+    "Magma cudaPackages does not match cudaPackages" = cudaSupport && (effectiveMagma.cudaPackages != cudaPackages);
   };
 in buildPythonPackage rec {
   pname = "torch";
@@ -191,7 +197,7 @@ in buildPythonPackage rec {
   ''
   # error: no member named 'aligned_alloc' in the global namespace; did you mean simply 'aligned_alloc'
   # This lib overrided aligned_alloc hence the error message. Tltr: his function is linkable but not in header.
-  + lib.optionalString (stdenv.isDarwin && lib.versionOlder stdenv.targetPlatform.darwinSdkVersion "11.0") ''
+  + lib.optionalString (stdenv.isDarwin && lib.versionOlder stdenv.hostPlatform.darwinSdkVersion "11.0") ''
     substituteInPlace third_party/pocketfft/pocketfft_hdronly.h --replace '#if __cplusplus >= 201703L
     inline void *aligned_alloc(size_t align, size_t size)' '#if __cplusplus >= 201703L && 0
     inline void *aligned_alloc(size_t align, size_t size)'
@@ -288,6 +294,30 @@ in buildPythonPackage rec {
   # ... called on pointer ‘<unknown>’ with nonzero offset [1, 9223372036854775800] [-Werror=free-nonheap-object]
   ++ lib.optionals (stdenv.cc.isGNU && lib.versions.major stdenv.cc.version == "12" ) [
     "-Wno-error=free-nonheap-object"
+  ]
+  # .../source/torch/csrc/autograd/generated/python_functions_0.cpp:85:3:
+  # error: cast from ... to ... converts to incompatible function type [-Werror,-Wcast-function-type-strict]
+  ++ lib.optionals (stdenv.cc.isClang && lib.versionAtLeast stdenv.cc.version "16") [
+    "-Wno-error=cast-function-type-strict"
+  # Suppresses the most spammy warnings.
+  # This is mainly to fix https://github.com/NixOS/nixpkgs/issues/266895.
+  ] ++ lib.optionals rocmSupport [
+    "-Wno-#warnings"
+    "-Wno-cpp"
+    "-Wno-unknown-warning-option"
+    "-Wno-ignored-attributes"
+    "-Wno-deprecated-declarations"
+    "-Wno-defaulted-function-deleted"
+    "-Wno-pass-failed"
+  ] ++ [
+    "-Wno-unused-command-line-argument"
+    "-Wno-uninitialized"
+    "-Wno-array-bounds"
+    "-Wno-free-nonheap-object"
+    "-Wno-unused-result"
+  ] ++ lib.optionals stdenv.cc.isGNU [
+    "-Wno-maybe-uninitialized"
+    "-Wno-stringop-overflow"
   ]));
 
   nativeBuildInputs = [
@@ -304,7 +334,6 @@ in buildPythonPackage rec {
   ++ lib.optionals rocmSupport [ rocmtoolkit_joined ];
 
   buildInputs = [ blas blas.provider ]
-    ++ lib.optionals stdenv.isLinux [ linuxHeaders_5_19 ] # TMP: avoid "flexible array member" errors for now
     ++ lib.optionals cudaSupport (with cudaPackages; [
       cuda_cccl.dev # <thrust/*>
       cuda_cudart # cuda_runtime.h and libraries
@@ -337,7 +366,7 @@ in buildPythonPackage rec {
       cuda_profiler_api.dev # <cuda_profiler_api.h>
     ])
     ++ lib.optionals rocmSupport [ rocmPackages.llvm.openmp ]
-    ++ lib.optionals (cudaSupport || rocmSupport) [ magma ]
+    ++ lib.optionals (cudaSupport || rocmSupport) [ effectiveMagma ]
     ++ lib.optionals stdenv.isLinux [ numactl ]
     ++ lib.optionals stdenv.isDarwin [ Accelerate CoreServices libobjc ];
 
@@ -357,12 +386,10 @@ in buildPythonPackage rec {
     # the following are required for tensorboard support
     pillow six future tensorboard protobuf
 
-    # ROCm build and `torch.compile` requires openai-triton
-    openai-triton
-
     # torch/csrc requires `pybind11` at runtime
     pybind11
   ]
+  ++ lib.optionals tritonSupport [ openai-triton ]
   ++ lib.optionals MPISupport [ mpi ]
   ++ lib.optionals rocmSupport [ rocmtoolkit_joined ];
 

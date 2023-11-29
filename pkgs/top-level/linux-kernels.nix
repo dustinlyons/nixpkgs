@@ -201,17 +201,12 @@ in {
        then latest
        else testing;
 
+    # FIXME: Remove after 23.11 is released
     linux_testing_bcachefs = callPackage ../os-specific/linux/kernel/linux-testing-bcachefs.nix {
       # Pinned on the last version which Kent's commits can be cleany rebased up.
-      kernel = callPackage ../os-specific/linux/kernel/mainline.nix {
-        branch = "6.4";
-      };
-      kernelPatches = [
-        kernelPatches.bridge_stp_helper
-        kernelPatches.request_key_helper
-        kernelPatches.dell_xps_regression
-      ];
-    };
+      kernel = linux_6_5;
+      kernelPatches = linux_6_5.kernelPatches;
+   };
 
     # Using zenKernels like this due lqx&zen came from one source, but may have different base kernel version
     # https://github.com/NixOS/nixpkgs/pull/161773#discussion_r820134708
@@ -387,6 +382,8 @@ in {
 
     lttng-modules = callPackage ../os-specific/linux/lttng-modules { };
 
+    mstflint_access = callPackage ../os-specific/linux/mstflint_access { };
+
     broadcom_sta = callPackage ../os-specific/linux/broadcom-sta { };
 
     tbs = callPackage ../os-specific/linux/tbs { };
@@ -549,6 +546,10 @@ in {
 
     zenpower = callPackage ../os-specific/linux/zenpower { };
 
+    zfs_2_1 = callPackage ../os-specific/linux/zfs/2_1.nix {
+      configFile = "kernel";
+      inherit pkgs kernel;
+    };
     zfsStable = callPackage ../os-specific/linux/zfs/stable.nix {
       configFile = "kernel";
       inherit pkgs kernel;
@@ -616,6 +617,7 @@ in {
 
     # Intentionally lacks recurseIntoAttrs, as -rc kernels will quite likely break out-of-tree modules and cause failed Hydra builds.
     linux_testing = packagesFor kernels.linux_testing;
+    # FIXME: Remove after 23.11 is released
     linux_testing_bcachefs = recurseIntoAttrs (packagesFor kernels.linux_testing_bcachefs);
 
     linux_hardened = recurseIntoAttrs (packagesFor kernels.linux_hardened);
