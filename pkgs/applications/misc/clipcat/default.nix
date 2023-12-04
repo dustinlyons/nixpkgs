@@ -8,16 +8,16 @@
 
 rustPlatform.buildRustPackage rec {
   pname = "clipcat";
-  version = "0.7.0";
+  version = "0.11.0";
 
   src = fetchFromGitHub {
     owner = "xrelkd";
     repo = pname;
     rev = "v${version}";
-    hash = "sha256-MEyKUSEGVELk00TtKdfEgfzc3zwBllYrIjtC4NVbmRo=";
+    hash = "sha256-6L6u8inHkiEz7lp3T0a237z3JQwGDWKXtTBVNIKct64=";
   };
 
-  cargoHash = "sha256-LiTZfkp0uuKgfl4uaxNEJAn7UlrHHaWh/ivaJxYhULY=";
+  cargoHash = "sha256-uzIqIGjCZEmChM3uVAnAp7eTIznTLXW/4t+NVoryjtk=";
 
   nativeBuildInputs = [
     protobuf

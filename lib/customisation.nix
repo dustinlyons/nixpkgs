@@ -4,11 +4,12 @@ let
   inherit (builtins)
     intersectAttrs;
   inherit (lib)
-    functionArgs isFunction mirrorFunctionArgs isAttrs setFunctionArgs levenshteinAtMost
-    optionalAttrs attrNames levenshtein filter elemAt concatStringsSep sort take length
+    functionArgs isFunction mirrorFunctionArgs isAttrs setFunctionArgs
+    optionalAttrs attrNames filter elemAt concatStringsSep sort take length
     filterAttrs optionalString flip pathIsDirectory head pipe isDerivation listToAttrs
     mapAttrs seq flatten deepSeq warnIf isInOldestRelease extends
     ;
+  inherit (lib.strings) levenshtein levenshteinAtMost;
 
 in
 rec {
@@ -198,9 +199,11 @@ rec {
         + "${loc'}${prettySuggestions (getSuggestions arg)}";
 
       # Only show the error for the first missing argument
-      error = errorForArg missingArgs.${head (attrNames missingArgs)};
+      error = errorForArg (head (attrNames missingArgs));
 
-    in if missingArgs == {} then makeOverridable f allArgs else abort error;
+    in if missingArgs == {}
+       then makeOverridable f allArgs
+       else throw "lib.customisation.callPackageWith: ${error}";
 
 
   /* Like callPackage, but for a function that returns an attribute

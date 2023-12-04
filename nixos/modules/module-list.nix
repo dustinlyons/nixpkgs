@@ -167,6 +167,7 @@
   ./programs/direnv.nix
   ./programs/dmrconfig.nix
   ./programs/droidcam.nix
+  ./programs/dublin-traceroute.nix
   ./programs/ecryptfs.nix
   ./programs/environment.nix
   ./programs/evince.nix
@@ -441,6 +442,7 @@
   ./services/databases/surrealdb.nix
   ./services/databases/victoriametrics.nix
   ./services/desktops/accountsservice.nix
+  ./services/desktops/ayatana-indicators.nix
   ./services/desktops/bamf.nix
   ./services/desktops/blueman.nix
   ./services/desktops/cpupower-gui.nix
@@ -480,6 +482,7 @@
   ./services/desktops/telepathy.nix
   ./services/desktops/tumbler.nix
   ./services/desktops/zeitgeist.nix
+  ./services/development/athens.nix
   ./services/development/blackfire.nix
   ./services/development/bloop.nix
   ./services/development/distccd.nix
@@ -514,6 +517,7 @@
   ./services/hardware/argonone.nix
   ./services/hardware/asusd.nix
   ./services/hardware/auto-cpufreq.nix
+  ./services/hardware/auto-epp.nix
   ./services/hardware/bluetooth.nix
   ./services/hardware/bolt.nix
   ./services/hardware/brltty.nix
@@ -634,6 +638,7 @@
   ./services/misc/amazon-ssm-agent.nix
   ./services/misc/ananicy.nix
   ./services/misc/ankisyncd.nix
+  ./services/misc/anki-sync-server.nix
   ./services/misc/apache-kafka.nix
   ./services/misc/atuin.nix
   ./services/misc/autofs.nix
@@ -679,6 +684,7 @@
   ./services/misc/gollum.nix
   ./services/misc/gpsd.nix
   ./services/misc/greenclip.nix
+  ./services/misc/guix
   ./services/misc/headphones.nix
   ./services/misc/heisenbridge.nix
   ./services/misc/homepage-dashboard.nix
@@ -1419,6 +1425,7 @@
   ./system/activation/bootspec.nix
   ./system/activation/top-level.nix
   ./system/boot/binfmt.nix
+  ./system/boot/clevis.nix
   ./system/boot/emergency-mode.nix
   ./system/boot/grow-partition.nix
   ./system/boot/initrd-network.nix
@@ -1539,9 +1546,10 @@
   ./virtualisation/waydroid.nix
   ./virtualisation/xe-guest-utilities.nix
   ./virtualisation/xen-dom0.nix
-  { documentation.nixos.extraModules = [
-    ./virtualisation/qemu-vm.nix
-    ./image/repart.nix
+  {
+    documentation.nixos.extraModules = [
+      ./virtualisation/qemu-vm.nix
+      ./image/repart.nix
     ];
   }
 ]
