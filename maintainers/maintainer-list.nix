@@ -5628,6 +5628,12 @@
     githubId = 2147649;
     name = "Euan Kemp";
   };
+  eureka-cpu = {
+    email = "github.eureka@gmail.com";
+    github = "eureka-cpu";
+    githubId = 57543709;
+    name = "Chris O'Brien";
+  };
   evalexpr = {
     name = "Jonathan Wilkins";
     email = "nixos@wilkins.tech";
@@ -13510,7 +13516,8 @@
     name = "Nathan Viets";
   };
   nyanbinary = {
-    email = "vextium@skiff.com";
+    email = "nyanbinary@keemail.me";
+    matrix = "@niko:conduit.rs";
     github = "nyabinary";
     githubId = 97130632;
     name = "Niko";
