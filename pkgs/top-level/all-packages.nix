@@ -61,7 +61,7 @@ with pkgs;
   };
 
   stdenvNoLibs =
-    if stdenv.hostPlatform != stdenv.buildPlatform && (stdenv.hostPlatform.isDarwin || stdenv.hostPlatform.isDarwin.useLLVM or false)
+    if stdenv.hostPlatform != stdenv.buildPlatform && (stdenv.hostPlatform.isDarwin || stdenv.hostPlatform.useLLVM or false)
     then
       # We cannot touch binutils or cc themselves, because that will cause
       # infinite recursion. So instead, we just choose a libc based on the
@@ -6893,8 +6893,9 @@ with pkgs;
     citrix_workspace_23_02_0
     citrix_workspace_23_07_0
     citrix_workspace_23_09_0
+    citrix_workspace_23_11_0
   ;
-  citrix_workspace = citrix_workspace_23_09_0;
+  citrix_workspace = citrix_workspace_23_11_0;
 
   clima = callPackage ../tools/text/clima { };
 
@@ -19389,7 +19390,7 @@ with pkgs;
   img = callPackage ../development/tools/img { };
 
   include-what-you-use = callPackage ../development/tools/analysis/include-what-you-use {
-    llvmPackages = llvmPackages_15;
+    llvmPackages = llvmPackages_17;
   };
 
   indent = callPackage ../development/tools/misc/indent { };
@@ -21458,7 +21459,9 @@ with pkgs;
     stdenv = if stdenv.cc.isClang then overrideLibcxx llvmPackages_14.stdenv else stdenv;
   };
 
-  geos39 = callPackage ../development/libraries/geos/3.9.nix { };
+  geos_3_9 = callPackage ../development/libraries/geos/3.9.nix { };
+
+  geos_3_11 = callPackage ../development/libraries/geos/3.11.nix { };
 
   getdata = callPackage ../development/libraries/getdata { };
 
@@ -29749,16 +29752,22 @@ with pkgs;
 
   nordzy-icon-theme = callPackage ../data/icons/nordzy-icon-theme { };
 
-  inherit (callPackages ../data/fonts/noto-fonts {})
-    mkNoto
-    noto-fonts
-    noto-fonts-lgc-plus
-    noto-fonts-cjk-sans
-    noto-fonts-cjk-serif
-    noto-fonts-color-emoji
-    noto-fonts-emoji-blob-bin
-    noto-fonts-monochrome-emoji
-    ;
+  noto-fonts-lgc-plus = callPackage ../by-name/no/noto-fonts/package.nix {
+    suffix = "-lgc-plus";
+    variants = [
+      "Noto Sans"
+      "Noto Serif"
+      "Noto Sans Mono"
+      "Noto Music"
+      "Noto Sans Symbols"
+      "Noto Sans Symbols 2"
+      "Noto Sans Math"
+    ];
+    longDescription = ''
+      This package provides the Noto Fonts, but only for latin, greek
+      and cyrillic scripts, as well as some extra fonts.
+    '';
+  };
 
   nuclear = callPackage ../applications/audio/nuclear { };
 
@@ -37725,9 +37734,7 @@ with pkgs;
 
   endless-sky = callPackage ../games/endless-sky { };
 
-  extremetuxracer = callPackage ../games/extremetuxracer {
-    libpng = libpng12;
-  };
+  extremetuxracer = callPackage ../games/extremetuxracer { };
 
   exult = callPackage ../games/exult { };
 
@@ -41378,14 +41385,16 @@ with pkgs;
 
   wacomtablet = libsForQt5.callPackage ../tools/misc/wacomtablet { };
 
-  wamr = callPackage ../development/interpreters/wamr { };
+  wamr = darwin.apple_sdk_11_0.callPackage ../development/interpreters/wamr { };
 
   wasmer = callPackage ../development/interpreters/wasmer {
     llvmPackages = llvmPackages_14;
     inherit (darwin.apple_sdk.frameworks) CoreFoundation SystemConfiguration Security;
   };
 
-  wavm = callPackage ../development/interpreters/wavm { };
+  wavm = callPackage ../development/interpreters/wavm {
+    llvmPackages = llvmPackages_12;
+  };
 
   yabasic = callPackage ../development/interpreters/yabasic { };
 
